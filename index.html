@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ゲームポータル</title>
+  <style>
+    body { font-family: "Segoe UI", sans-serif; background: #f5f5f5; text-align: center; }
+    header { background: #333; color: #fff; padding: 20px; }
+    .game-card {
+      display: inline-block;
+      width: 250px;
+      margin: 20px;
+      padding: 15px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .game-card img { width: 100%; border-radius: 5px; }
+    .play-btn {
+      display: block;
+      margin-top: 10px;
+      padding: 10px;
+      background: #0078d7;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+    }
+    .play-btn:hover { background: #005a9e; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ゲームポータル</h1>
+    <p>好きなゲームを選んで遊ぼう！</p>
+  </header>
+
+  <div class="game-card">
+    <img src="game1.png" alt="ゲーム1スクリーンショット">
+    <h3>麻雀ミニゲーム</h3>
+    <p>二人麻雀（CPU）</p>
+    <a href="game1.html" class="play-btn">▶ プレイする</a>
+  </div>
+
+  <div class="game-card">
+    <img src="game2.png" alt="ゲーム2スクリーンショット">
+    <h3>テトリス</h3>
+    <p>パズルゲーム</p>
+    <a href="tetris/" class="play-btn">▶ プレイする</a>
+  </div>
+
+  <div class="game-card">
+    <img src="game3.png" alt="ゲーム3スクリーンショット">
+    <h3>ゲームタイトル3</h3>
+    <p>作成中（デバック作業中）</p>
+    <a href="game3.html" class="play-btn">▶ プレイする</a>
+  </div>
+
+</body>
+</html>
