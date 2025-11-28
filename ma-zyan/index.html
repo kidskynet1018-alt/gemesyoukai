@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>2人麻雀（CPU対戦）</title>
+  <style>
+    body { font-family: sans-serif; background: #0a8f3e; color: white; text-align: center; };
+    .hand, .discard { display: flex; justify-content: center; margin: 10px; flex-wrap: wrap; };
+    .tile { 
+      width: 40px; height: 60px; margin: 2px; 
+      background: white; color: black; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    };
+    .cpu-hand .tile { background: gray; }; /* CPUの手牌は裏 */
+    .section { margin: 15px 0; };
+    h2 { margin: 5px; };
+  </style>
+</head>
+
+<body>
+  <h1>2人麻雀（CPU対戦）</h1>
+
+  <div class="section">
+    <h2>CPUの手牌</h2>
+    <div id="cpu-hand" class="hand cpu-hand"></div>
+
+    <h3>CPUの捨て牌</h3>
+    <div id="cpu-discards" class="discard"></div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <h3>あなたの捨て牌</h3>
+    <div id="player-discards" class="discard"></div>
+
+    <h2>あなたの手牌</h2>
+    <div id="player-hand" class="hand"></div>
+
+    <button id="draw-btn">ツモ</button>
+  </div>
+
+  <script>
+    // ====== 牌データ生成 ======
+    const suits = ['m', 'p', 's']; // 萬・筒・索
+    const tiles = [];
+
+    for (let suit of suits) {
+      for (let num = 1; num <= 9; num++) {
+        for (let i = 0; i < 4; i++) {
+          tiles.push(suit + num);
+        };
+      };
+    };
+
+    const honors = ['東', '南', '西', '北', '白', '發', '中']; // 東南西北白發中
+    for (let h of honors) {
+      for (let i = 0; i < 4; i++) {
+        tiles.push(h);
+      };
+    };
+
+    // ====== 山をシャッフル ======
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    };
+
+    let yama = shuffle([...tiles]);
+
+    // ====== 初期化 ======
+    let playerHand = yama.splice(0, 13);
+    let cpuHand = yama.splice(0, 13);
+    let playerDiscards = [];
+    let cpuDiscards = [];
+
+    // ====== 手牌ソート関数 ======
+    function sortHand(hand) {
+      const order = { m: 1, p: 2, s: 3 }; // 萬→筒→索
+      const honorOrder = { E: 4, S: 5, W: 6, N: 7, H: 8, F: 9, C: 10 };
+
+      return hand.sort((a, b) => {
+        const aSuit = a[0], bSuit = b[0];
+        const aNum = parseInt(a.slice(1)) || 0;
+        const bNum = parseInt(b.slice(1)) || 0;
+
+        // 萬・筒・索
+        if (order[aSuit] && order[bSuit]) {
+          if (order[aSuit] === order[bSuit]) return aNum - bNum;
+          return order[aSuit] - order[bSuit];
+        };
+
+        // 字牌の場合
+        if (order[aSuit] && !order[bSuit]) return -1;
+        if (!order[aSuit] && order[bSuit]) return 1;
+        return (honorOrder[aSuit] || 99) - (honorOrder[bSuit] || 99);
+      });
+    };
+
+    // ====== 表示更新 ======
+   // ====== あがり判定（4面子1雀頭） ======
+    function isWinning(hand) {
+      if (hand.length !== 14) return false;
+
+      // カウントマップ作成
+      let counts = {};
+      hand.forEach(t => counts[t] = (counts[t] || 0) + 1);
+
+      // すべての可能な雀頭候補を試す
+      for (let tile in counts) {
+        if (counts[tile] >= 2) {
+          counts[tile] -= 2;
+          if (canFormMelds(JSON.parse(JSON.stringify(counts)))) {
+            return true;
+          };
+          counts[tile] += 2;
+        };
+      };
+      return false;
+    };
+
+    // 再帰的に面子を作れるか確認
+    function canFormMelds(counts) {
+      const tiles = Object.keys(counts).filter(t => counts[t] > 0);
+      if (tiles.length === 0) return true; // すべて使い切った
+
+      const first = tiles[0];
+      if (counts[first] >= 3) {
+        counts[first] -= 3;
+        if (canFormMelds(counts)) return true;
+        counts[first] += 3;
+      }
+
+      // 順子（同種、連続数字）
+      const suit = first[0];
+      const num = parseInt(first.slice(1));
+      if (suit !== 'E' && num && num <= 7) {
+        const next1 = suit + (num + 1);
+        const next2 = suit + (num + 2);
+        if (counts[next1] > 0 && counts[next2] > 0) {
+          counts[first]--; counts[next1]--; counts[next2]--;
+          if (canFormMelds(counts)) return true;
+          counts[first]++; counts[next1]++; counts[next2]++;
+        }
+      }
+      return false;
+    };
+
+    // ====== 表示更新 ======
+    function render(message="") {
+      const playerDiv=document.getElementById("player-hand");
+      const cpuDiv=document.getElementById("cpu-hand");
+      const playerDiscardDiv=document.getElementById("player-discards");
+      const cpuDiscardDiv=document.getElementById("cpu-discards");
+      const msgDiv=document.getElementById("message");
+
+      playerHand=sortHand(playerHand);
+      cpuHand=sortHand(cpuHand);
+
+      playerDiv.innerHTML="";
+      playerHand.forEach((tile,idx)=>{
+        const div=document.createElement("div");
+        div.className="tile";
+        div.textContent=tileToEmoji(tile);
+        div.onclick=()=>playerDiscard(idx);
+        playerDiv.appendChild(div);
+      });
+
+      cpuDiv.innerHTML="";
+      cpuHand.forEach(()=>{const d=document.createElement("div");d.className="tile";d.textContent="🀫";cpuDiv.appendChild(d);});
+
+      playerDiscardDiv.innerHTML=playerDiscards.map(t=>`<div class="tile">${tileToEmoji(t)}</div>`).join("");
+      cpuDiscardDiv.innerHTML=cpuDiscards.map(t=>`<div class="tile">${tileToEmoji(t)}</div>`).join("");
+      msgDiv.textContent=message;
+    };
+
+    // ====== プレイヤー捨て牌 ===
+    
+    function render() {
+      const playerDiv = document.getElementById("player-hand");
+      const cpuDiv = document.getElementById("cpu-hand");
+      const playerDiscardDiv = document.getElementById("player-discards");
+      const cpuDiscardDiv = document.getElementById("cpu-discards");
+
+      // ソートして表示
+      playerHand = sortHand(playerHand);
+      cpuHand = sortHand(cpuHand);
+
+      // プレイヤー手牌
+      playerDiv.innerHTML = "";
+      playerHand.forEach((tile, idx) => {
+        const div = document.createElement("div");
+        div.className = "tile";
+        div.textContent = tile;
+        div.onclick = () => playerDiscard(idx);
+        playerDiv.appendChild(div);
+      });
+       //===================　自模の制限（プレイヤー）　======================
+    document.getElementById("draw-btn").onclick = () => {
+  if (yama.length === 0) return alert("山が尽きました！");
+  if (playerHand.length !== 13) return alert("打牌してからツモしてください！");
+  const draw = yama.pop();
+  playerHand.push(draw); // → 14枚になる
+  render();
+};
+    function playerDiscard(index) {
+  if (playerHand.length !== 14) return alert("ツモしてから捨ててください！");
+  const discard = playerHand.splice(index, 1)[0];
+  playerDiscards.push(discard);
+  render();
+  setTimeout(cpuTurn, 1000);
+};
+
+      // CPU手牌（裏）
+      cpuDiv.innerHTML = "";
+      cpuHand.forEach(() => {
+        const div = document.createElement("div");
+        div.className = "tile";
+        div.textContent = "🀫";
+        cpuDiv.appendChild(div);
+      });
+    //===================　自模の制限（cpu）　======================
+function cpuTurn() {
+  if (yama.length === 0) return alert("山が尽きました！");
+  if (cpuHand.length !== 13) return; // CPUも13枚の時だけツモ
+  const draw = yama.pop();
+  cpuHand.push(draw); // → 14枚
+  const discardIndex = Math.floor(Math.random() * cpuHand.length);
+  const discard = cpuHand.splice(discardIndex, 1)[0]; // → 13枚に戻る
+  cpuDiscards.push(discard);
+  render();
+   };
+
+      // 捨て牌
+      playerDiscardDiv.innerHTML = playerDiscards.map(t => `<div class="tile">${t}</div>`).join("");
+      cpuDiscardDiv.innerHTML = cpuDiscards.map(t => `<div class="tile">${t}</div>`).join("");
+    };
+
+    // ====== プレイヤー捨て牌 ======
+    function playerDiscard(index) {
+      const discard = playerHand.splice(index, 1)[0];
+      playerDiscards.push(discard);
+      render();
+      setTimeout(cpuTurn, 1000);
+    };
+
+    // ====== CPUターン ======
+    function cpuTurn() {
+      if (yama.length === 0) return alert("山が尽きました！");
+      const draw = yama.pop();
+      cpuHand.push(draw);
+      const discardIndex = Math.floor(Math.random() * cpuHand.length);
+      const discard = cpuHand.splice(discardIndex, 1)[0];
+      cpuDiscards.push(discard); 
+      render();
+    };
+
+    // ====== ツモボタン ======
+    document.getElementById("draw-btn").onclick = () => {
+      if (yama.length === 0) return alert("山が尽きました！");
+      const draw = yama.pop();
+      playerHand.push(draw);
+      render();
+    };
+
+    // ====== 初期表示 ======
+    render();
+  </script>
+</body>
+</html>
