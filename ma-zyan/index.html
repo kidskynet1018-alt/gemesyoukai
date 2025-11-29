@@ -3,20 +3,52 @@
 <head>
   <meta charset="UTF-8">
   <title>2人麻雀（CPU対戦）</title>
-  <style>
-    body { font-family: sans-serif; background: #0a8f3e; color: white; text-align: center; };
-    .hand, .discard { display: flex; justify-content: center; margin: 10px; flex-wrap: wrap; };
-    .tile { 
-      width: 40px; height: 60px; margin: 2px; 
-      background: white; color: black; border-radius: 4px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-    };
-    .cpu-hand .tile { background: gray; }; /* CPUの手牌は裏 */
-    .section { margin: 15px 0; };
-    h2 { margin: 5px; };
-  </style>
+ <style>
+  body {
+    font-family: sans-serif;
+    background: #0a8f3e;
+    color: white;
+    text-align: center;
+  }
+
+  .hand, .discard {
+    display: flex;
+    justify-content: center;
+    margin: 10px;
+    flex-wrap: nowrap;   /* ← 折り返さない */
+    overflow-x: auto;    /* ← 横スクロール可能にする */
+  }
+
+  .tile {
+    width: 40px;
+    height: 60px;
+    margin: 2px;
+    background: white;
+    color: black;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .cpu-hand .tile {
+    background: gray; /* CPUの手牌は裏 */
+  }
+
+  .section {
+    margin: 15px 0;
+  }
+
+  h2 {
+    margin: 5px;
+  }
+</style>
+
 </head>
+
+
+}
 
 <body>
   <h1>2人麻雀（CPU対戦）</h1>
